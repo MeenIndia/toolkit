@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Domain Tracker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      padding: 1rem;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    input, button {
+      padding: 0.75rem;
+      margin: 0.25rem 0;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .domain-card {
+      background: white;
+      border-radius: 12px;
+      margin: 0.5rem 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      transition: 0.3s;
+    }
+
+    .domain-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      cursor: pointer;
+      background-color: #f0f0f0;
+    }
+
+    .domain-header span:first-child {
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .delete-btn {
+      background-color: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: red;
+      cursor: pointer;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .domain-body {
+      display: none;
+      padding: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .status-available { color: green; font-weight: bold; }
+    .status-registered { color: crimson; font-weight: bold; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 4px; }
+
+    @media (max-width: 480px) {
+      .domain-header, .domain-body { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Modern Domain Tracker</h2>
+
+  <input type="text" id="domainInput" placeholder="e.g. example.com" />
+  <button onclick="addDomain()">Add Domain</button>
+  <button onclick="checkAllDomains()">Refresh All</button>
+
+  <div id="domainList"></div>
+
+  <script>
+    const domainInput = document.getElementById("domainInput");
+    const domainListDiv = document.getElementById("domainList");
+
+    const getDomains = () => JSON.parse(localStorage.getItem("domains") || "[]");
+    const saveDomains = (domains) => localStorage.setItem("domains", JSON.stringify(domains));
+
+    function addDomain() {
+      const domain = domainInput.value.trim().toLowerCase();
+      if (!domain) return;
+      const domains = getDomains();
+      if (!domains.includes(domain)) {
+        domains.push(domain);
+        saveDomains(domains);
+        domainInput.value = "";
+        renderDomains();
+      }
+    }
+
+    function deleteDomain(domain) {
+      let domains = getDomains();
+      domains = domains.filter(d => d !== domain);
+      saveDomains(domains);
+      renderDomains();
+    }
+
+    function renderDomains() {
+      const domains = getDomains();
+      domainListDiv.innerHTML = "";
+      domains.forEach(domain => {
+        const card = document.createElement("div");
+        card.className = "domain-card";
+
+        const header = document.createElement("div");
+        header.className = "domain-header";
+
+        const name = document.createElement("span");
+        name.textContent = domain;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerHTML = "✖";
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteDomain(domain);
+        };
+
+        header.appendChild(name);
+        header.appendChild(deleteBtn);
+
+        const body = document.createElement("div");
+        body.className = "domain-body";
+        body.innerHTML = "<em>Loading...</em>";
+
+        header.addEventListener("click", () => {
+          body.style.display = body.style.display === "block" ? "none" : "block";
+        });
+
+        card.appendChild(header);
+        card.appendChild(body);
+        domainListDiv.appendChild(card);
+
+        checkDomain(domain, body);
+      });
+    }
+
+    function extractField(text, regex) {
+      const match = text.match(regex);
+      return match ? match[1].trim() : "Unknown";
+    }
+
+    async function checkDomain(domain, container) {
+      try {
+        const whoisRes = await fetch(`https://api.whois.vu/?q=${encodeURIComponent(domain)}`);
+        const whoisData = await whoisRes.json();
+
+        let isAvailable = !whoisData || !whoisData.whois || whoisData.whois.includes("No match") || whoisData.whois.includes("NOT FOUND");
+
+        if (isAvailable) {
+          container.innerHTML = `<div class="status-available">Available</div>`;
+        } else {
+          const whois = whoisData.whois;
+          const registrar = extractField(whois, /Registrar:\s*(.+)/i);
+          const created = extractField(whois, /Creation Date:\s*(.+)/i);
+          const updated = extractField(whois, /Updated Date:\s*(.+)/i);
+          const expiry = extractField(whois, /Expiry Date:\s*(.+)/i) || extractField(whois, /Registry Expiry Date:\s*(.+)/i);
+          const status = extractField(whois, /Domain Status:\s*(.+)/i);
+
+          const nsRecords = await getNSRecords(domain);
+
+          container.innerHTML = `
+            <div class="status-registered">Registered</div>
+            <div><strong>Registrar:</strong> ${registrar}</div>
+            <div><strong>First Registered:</strong> ${created}</div>
+            <div><strong>Last Updated:</strong> ${updated}</div>
+            <div><strong>Next Renewal:</strong> ${expiry}</div>
+            <div><strong>Status:</strong> ${status}</div>
+            <div><strong>NS Records:</strong><br>${nsRecords}</div>
+          `;
+        }
+      } catch (err) {
+        container.innerHTML = "<span style='color:red'>Error fetching data.</span>";
+      }
+    }
+
+    async function getNSRecords(domain) {
+      try {
+        const res = await fetch(`https://dns.google/resolve?name=${domain}&type=NS`);
+        const json = await res.json();
+        if (json.Answer) {
+          return json.Answer.map(ans => `<code>${ans.data}</code>`).join("<br>");
+        }
+        return "No NS records found.";
+      } catch {
+        return "Error fetching NS records.";
+      }
+    }
+
+    function checkAllDomains() {
+      renderDomains();
+    }
+
+    renderDomains();
+  </script>
+</body>
+</html>
