@@ -4,79 +4,68 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Modern Domain Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
     }
-
     body {
-      font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      padding: 0;
-      background-color: #f4f7f9;
-      color: #333;
+      background: #f5f7f8;
+      padding: 20px;
     }
-
-    header, .actions, .section {
-      margin: 20px auto;
-      width: 90%;
-      max-width: 1000px;
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
     }
-
-    header input {
-      width: calc(100% - 45px);
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px 0 0 6px;
-      outline: none;
-    }
-
-    header button {
-      width: 45px;
-      height: 40px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      font-size: 20px;
-      border-radius: 0 6px 6px 0;
-      cursor: pointer;
-    }
-
-    .actions {
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
-    }
-
-    .action-btn {
-      background-color: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      width: 70px;
-      height: 70px;
+    h1 {
       text-align: center;
+      font-size: 1.8rem;
+    }
+    .input-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .input-section input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .input-section button {
+      padding: 10px 15px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 6px;
       cursor: pointer;
     }
-
-    .action-btn:hover {
-      background-color: #eef2f5;
-    }
-
-    .action-btn i {
-      font-size: 24px;
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .section {
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    .action-bar {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
       margin-bottom: 20px;
     }
-
+    .action-bar button {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+    .section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
     .section-header {
       display: flex;
       justify-content: space-between;
@@ -84,105 +73,150 @@
       background: #007bff;
       color: white;
       padding: 10px 15px;
-      border-radius: 6px 6px 0 0;
+      cursor: pointer;
     }
-
+    .section-header h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
     .section-header button {
       background: none;
       border: none;
       color: white;
-      font-size: 20px;
-      cursor: pointer;
+      font-size: 1.2rem;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
     }
-
     th, td {
       padding: 10px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
+      border-top: 1px solid #ddd;
     }
-
-    td.actions {
+    th {
+      background: #f0f0f0;
+    }
+    .actions {
       display: flex;
-      flex-direction: column;
-      gap: 5px;
+      gap: 10px;
     }
-
-    @media (max-width: 768px) {
-      .actions {
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 10;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      z-index: 9;
+    }
+    @media (max-width: 600px) {
+      .input-section, .action-bar {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
       }
-      .action-btn {
-        margin: 5px 0;
-      }
-      th, td {
-        font-size: 14px;
+      .action-bar button {
+        flex-direction: row;
+        justify-content: space-between;
       }
     }
   </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <header>
-    <input type="text" placeholder="Enter Domain" id="domainInput" />
-    <button title="Add Domain"><i class="fas fa-plus"></i></button>
-  </header>
-
-  <div class="actions">
-    <div class="action-btn" title="Refresh All">
-      <i class="fas fa-sync-alt"></i>
-      <span>Refresh</span>
+  <div class="container">
+    <h1>Modern Domain Tracker</h1>
+    <div class="input-section">
+      <input type="text" placeholder="Enter Domain" />
+      <button>+</button>
     </div>
-    <div class="action-btn" title="Add Section">
-      <i class="fas fa-folder-plus"></i>
-      <span>Add</span>
+    <div class="action-bar">
+      <button>
+        🔄<span>Refresh all</span>
+      </button>
+      <button>
+        ➕<span>Add Section</span>
+      </button>
+      <button>
+        ☑️<span>Multi Select</span>
+      </button>
+      <button>
+        🗑️<span>All Delete</span>
+      </button>
     </div>
-    <div class="action-btn" title="Multi Select">
-      <i class="fas fa-check-square"></i>
-      <span>Select</span>
-    </div>
-    <div class="action-btn" title="All Delete">
-      <i class="fas fa-trash"></i>
-      <span>Delete</span>
+    <div class="section">
+      <div class="section-header">
+        <h2>Default</h2>
+        <button onclick="toggleSection(this)">⌄</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>S.No.</th>
+            <th>Domain</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+            <th>Next Renewal</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="showPopup()">
+            <td>1</td>
+            <td>google.com</td>
+            <td>registered</td>
+            <td>2/2/2025</td>
+            <td>29/2/2025</td>
+            <td class="actions">
+              <button>Refresh</button>
+              <button>Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
-
-  <div class="section">
-    <div class="section-header">
-      <span>Default Section</span>
-      <button title="Collapse"><i class="fas fa-chevron-down"></i></button>
-    </div>
+  <div class="overlay" id="overlay" onclick="closePopup()"></div>
+  <div class="popup" id="popup">
+    <h3>WHOIS Full Info</h3>
     <table>
-      <thead>
-        <tr>
-          <th>S. No.</th>
-          <th>Domain</th>
-          <th>Status</th>
-          <th>Last Update</th>
-          <th>Next Renewal</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>1</td>
-          <td>google.com</td>
-          <td>Registered</td>
-          <td>2025-02-02</td>
-          <td>2025-09-29</td>
-          <td class="actions">
-            <button>Refresh</button>
-            <button>Delete</button>
-          </td>
-        </tr>
-      </tbody>
+      <tr><td>Domain:</td><td>google.com</td></tr>
+      <tr><td>Status:</td><td>registered</td></tr>
+      <tr><td>Created:</td><td>15/09/1997</td></tr>
+      <tr><td>Updated:</td><td>13/09/2022</td></tr>
+      <tr><td>Expires:</td><td>14/09/2025</td></tr>
+      <tr><td>Registrar:</td><td>Google LLC</td></tr>
+      <tr><td>NS Records:</td><td>ns1.google.com, ns2.google.com</td></tr>
     </table>
   </div>
 
+  <script>
+    function toggleSection(button) {
+      const table = button.closest('.section').querySelector('table');
+      table.style.display = table.style.display === 'none' ? '' : 'none';
+    }
+    function showPopup() {
+      document.getElementById('popup').style.display = 'block';
+      document.getElementById('overlay').style.display = 'block';
+    }
+    function closePopup() {
+      document.getElementById('popup').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
