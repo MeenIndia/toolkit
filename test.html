@@ -5,209 +5,245 @@
   <title>Domain Tracker</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      background: #f5f9f8;
       margin: 0;
       padding: 0;
-      background-color: #f4f8f9;
     }
-    header, .actions, .section {
-      padding: 1rem;
-      margin: 1rem;
+    .container {
+      max-width: 960px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .input-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .section {
       background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    header input {
-      width: 80%;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    header button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-    }
-    .actions button {
-      margin-right: 0.5rem;
-      padding: 0.5rem;
-      border: none;
-      background: #1976d2;
-      color: white;
-      border-radius: 5px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
     }
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: #0077cc;
+      color: white;
+      padding: 10px;
       cursor: pointer;
     }
-    .section-header h2 {
-      margin: 0;
+    .section-content {
+      display: none;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
     }
     th, td {
-      padding: 0.5rem;
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
+      padding: 8px;
       text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
     }
     .modal {
       display: none;
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0,0,0,0.6);
       justify-content: center;
       align-items: center;
     }
     .modal-content {
       background: white;
-      padding: 1rem;
-      border-radius: 10px;
-      max-width: 90%;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
       max-height: 80%;
       overflow-y: auto;
+    }
+    .close {
+      float: right;
+      font-size: 24px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <header>
-    <input id="domainInput" placeholder="Enter domain" />
-    <button onclick="addDomain()">+</button>
-  </header>  <div class="actions">
-    <button onclick="refreshAll()">Refresh All</button>
-    <button onclick="promptNewSection()">Add Section</button>
-    <button onclick="toggleMultiselect()">Multi Select</button>
-    <button onclick="deleteSelected()">All Delete</button>
-  </div>  <div id="sections"></div>  <div class="modal" id="whoisModal" onclick="this.style.display='none'">
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <pre id="whoisData"></pre>
+  <div class="container">
+    <h1>Domain Tracker</h1>
+    <div class="input-group">
+      <input type="text" id="domainInput" placeholder="Enter domain" />
+      <button onclick="addDomain('Default')">+</button>
+    </div>
+    <div class="action-bar">
+      <button onclick="refreshAll()">⟳ Refresh All</button>
+      <button onclick="promptNewSection()">＋ Add Section</button>
+    </div>
+    <div id="sections"></div>
+  </div>  <div class="modal" id="whoisModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <div id="modalData"></div>
     </div>
   </div>  <script>
-    const STORAGE_KEY = 'domain_tracker_data';
+    const apiUrl = 'https://api.whois.vu/?q=';
 
-    let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-      sections: [{ name: 'Default', domains: [] }]
-    };
+    function saveData(data) {
+      localStorage.setItem('domainTrackerData', JSON.stringify(data));
+    }
 
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    function loadData() {
+      return JSON.parse(localStorage.getItem('domainTrackerData') || '{}');
+    }
+
+    function addDomain(sectionName) {
+      const domain = document.getElementById('domainInput').value.trim();
+      if (!domain) return;
+      const data = loadData();
+      if (!data[sectionName]) data[sectionName] = [];
+      if (!data[sectionName].some(d => d.domain === domain)) {
+        fetch(apiUrl + domain)
+          .then(res => res.json())
+          .then(whois => {
+            const parsed = parseWhois(whois);
+            data[sectionName].push({ domain, whois: parsed });
+            saveData(data);
+            renderSections();
+          });
+      }
+      document.getElementById('domainInput').value = '';
+    }
+
+    function parseWhois(whoisRaw) {
+      const lines = whoisRaw.Whois?.split('\n') || [];
+      const result = {};
+      lines.forEach(line => {
+        const [key, ...rest] = line.split(':');
+        if (key && rest.length) result[key.trim()] = rest.join(':').trim();
+      });
+      return result;
     }
 
     function renderSections() {
+      const data = loadData();
       const container = document.getElementById('sections');
       container.innerHTML = '';
-      state.sections.forEach((section, sectionIndex) => {
-        const secDiv = document.createElement('div');
-        secDiv.className = 'section';
+      for (const [sectionName, domains] of Object.entries(data)) {
+        const section = document.createElement('div');
+        section.className = 'section';
 
         const header = document.createElement('div');
         header.className = 'section-header';
-        header.innerHTML = `<h2>${section.name}</h2><button onclick="toggleSection(${sectionIndex})">▾</button>`;
-        secDiv.appendChild(header);
+        header.innerHTML = `<span>${sectionName}</span><span onclick="toggleSection(this)">▼</span>`;
+        section.appendChild(header);
+
+        const content = document.createElement('div');
+        content.className = 'section-content';
 
         const table = document.createElement('table');
-        table.style.display = section.collapsed ? 'none' : 'table';
-        table.innerHTML = `
-          <tr>
-            <th>S.No</th>
-            <th>Domain</th>
-            <th>Status</th>
-            <th>Last Updated</th>
-            <th>Next Renewal</th>
-            <th>Action</th>
-          </tr>
-          ${section.domains.map((d, i) => `
-            <tr onclick="showDetails('${d.domain}')">
-              <td>${i + 1}</td>
-              <td>${d.domain}</td>
-              <td>${d.status || ''}</td>
-              <td>${d.updated || ''}</td>
-              <td>${d.renewal || ''}</td>
-              <td><button onclick="event.stopPropagation(); refreshDomain(${sectionIndex}, ${i})">Refresh</button>
-              <button onclick="event.stopPropagation(); deleteDomain(${sectionIndex}, ${i})">Delete</button></td>
-            </tr>
-          `).join('')}
-        `;
-        secDiv.appendChild(table);
-        container.appendChild(secDiv);
-      });
-    }
+        table.innerHTML = '<tr><th>S.No.</th><th>Domain</th><th>Status</th><th>Last Updated</th><th>Next Renewal</th><th>Registrar</th><th>Actions</th></tr>';
 
-    function toggleSection(index) {
-      state.sections[index].collapsed = !state.sections[index].collapsed;
-      saveState();
-      renderSections();
-    }
-
-    function addDomain() {
-      const domain = document.getElementById('domainInput').value.trim();
-      if (!domain) return;
-      state.sections[0].domains.push({ domain });
-      fetchWhois(domain, state.sections[0].domains.length - 1, 0);
-      saveState();
-      renderSections();
-    }
-
-    function refreshAll() {
-      state.sections.forEach((section, sIndex) => {
-        section.domains.forEach((d, i) => fetchWhois(d.domain, i, sIndex));
-      });
-    }
-
-    function refreshDomain(sIndex, dIndex) {
-      fetchWhois(state.sections[sIndex].domains[dIndex].domain, dIndex, sIndex);
-    }
-
-    function deleteDomain(sIndex, dIndex) {
-      state.sections[sIndex].domains.splice(dIndex, 1);
-      saveState();
-      renderSections();
-    }
-
-    function showDetails(domain) {
-      const allDomains = state.sections.flatMap(s => s.domains);
-      const found = allDomains.find(d => d.domain === domain);
-      if (found && found.fullData) {
-        document.getElementById('whoisData').textContent = found.fullData;
-        document.getElementById('whoisModal').style.display = 'flex';
+        domains.forEach((d, i) => {
+          const tr = document.createElement('tr');
+          tr.onclick = () => showModal(d);
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${d.domain}</td>
+            <td>${d.whois['Domain Status'] || 'N/A'}</td>
+            <td>${d.whois['Updated Date'] || 'N/A'}</td>
+            <td>${d.whois['Registry Expiry Date'] || 'N/A'}</td>
+            <td>${d.whois['Registrar'] || 'N/A'}</td>
+            <td><button onclick="event.stopPropagation();deleteDomain('${sectionName}', ${i})">Delete</button></td>
+          `;
+          table.appendChild(tr);
+        });
+        content.appendChild(table);
+        section.appendChild(content);
+        container.appendChild(section);
       }
     }
 
-    function fetchWhois(domain, dIndex, sIndex) {
-      fetch(`https://api.whois.vu/?q=${domain}`)
-        .then(res => res.text())
-        .then(data => {
-          const updated = new Date().toLocaleDateString();
-          const domainObj = state.sections[sIndex].domains[dIndex];
-          domainObj.fullData = data;
-          domainObj.status = data.includes('No match') ? 'Available' : 'Registered';
-          domainObj.updated = updated;
-          const renewMatch = data.match(/Expiry Date:\s*(.*)/i);
-          domainObj.renewal = renewMatch ? renewMatch[1] : 'Unknown';
-          saveState();
-          renderSections();
+    function deleteDomain(section, index) {
+      const data = loadData();
+      data[section].splice(index, 1);
+      saveData(data);
+      renderSections();
+    }
+
+    function toggleSection(elem) {
+      const content = elem.closest('.section').querySelector('.section-content');
+      content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function showModal(domainObj) {
+      const modal = document.getElementById('whoisModal');
+      const modalData = document.getElementById('modalData');
+      modalData.innerHTML = '<table>' +
+        Object.entries(domainObj.whois).map(([k,v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('') +
+        '</table>';
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('whoisModal').style.display = 'none';
+    }
+
+    function refreshAll() {
+      const data = loadData();
+      const promises = [];
+      for (const [section, domains] of Object.entries(data)) {
+        domains.forEach(d => {
+          promises.push(
+            fetch(apiUrl + d.domain)
+              .then(res => res.json())
+              .then(whois => {
+                d.whois = parseWhois(whois);
+              })
+          );
         });
+      }
+      Promise.all(promises).then(() => {
+        saveData(data);
+        renderSections();
+      });
     }
 
     function promptNewSection() {
       const name = prompt('Enter section name:');
-      if (name) {
-        state.sections.push({ name, domains: [], collapsed: false });
-        saveState();
-        renderSections();
-      }
-    }
-
-    function toggleMultiselect() {
-      alert('Multiselect coming soon...');
-    }
-
-    function deleteSelected() {
-      alert('Delete selected not implemented yet.');
+      if (!name) return;
+      const data = loadData();
+      if (!data[name]) data[name] = [];
+      saveData(data);
+      renderSections();
     }
 
     renderSections();
