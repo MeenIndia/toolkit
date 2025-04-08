@@ -2,247 +2,244 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Domain Tracker</title>
+  <title>Modern Domain Tracker</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f9f8;
+      font-family: sans-serif;
       margin: 0;
       padding: 0;
+      background: #f3f7f8;
     }
     .container {
       max-width: 960px;
       margin: auto;
-      padding: 20px;
+      padding: 1rem;
     }
     h1 {
       text-align: center;
+      margin-bottom: 1rem;
     }
     .input-group {
       display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 1rem;
     }
-    input[type="text"] {
+    .input-group input {
       flex: 1;
-      padding: 10px;
-      font-size: 16px;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.3rem 0 0 0.3rem;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
+    .input-group button {
+      padding: 0 1rem;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 0 0.3rem 0.3rem 0;
       cursor: pointer;
     }
     .action-bar {
       display: flex;
+      gap: 1rem;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 1rem;
+    }
+    .action-bar button {
+      cursor: pointer;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
+      border: 1px solid #ccc;
+      background: white;
     }
     .section {
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-      overflow: hidden;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #0077cc;
-      color: white;
-      padding: 10px;
+      font-weight: bold;
       cursor: pointer;
-    }
-    .section-content {
-      display: none;
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 1rem;
     }
     th, td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 0.5rem;
       text-align: left;
     }
-    th {
-      background-color: #f2f2f2;
+    tr:hover {
+      background-color: #f1f1f1;
+      cursor: pointer;
     }
-    .modal {
-      display: none;
+    .popup {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
       justify-content: center;
       align-items: center;
+      z-index: 1000;
     }
-    .modal-content {
+    .popup-content {
       background: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
-      max-height: 80%;
+      padding: 1rem;
+      max-height: 80vh;
       overflow-y: auto;
+      border-radius: 0.5rem;
+      max-width: 600px;
+      width: 100%;
     }
-    .close {
+    .popup-content table {
+      width: 100%;
+    }
+    .popup-content th, .popup-content td {
+      text-align: left;
+      padding: 0.3rem;
+      border: 1px solid #ddd;
+    }
+    .popup-content button {
       float: right;
-      font-size: 24px;
-      cursor: pointer;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Domain Tracker</h1>
+    <h1>Modern Domain Tracker</h1>
     <div class="input-group">
-      <input type="text" id="domainInput" placeholder="Enter domain" />
-      <button onclick="addDomain('Default')">+</button>
+      <input id="domainInput" type="text" placeholder="Enter domain" />
+      <button onclick="addDomain()">+</button>
     </div>
     <div class="action-bar">
-      <button onclick="refreshAll()">⟳ Refresh All</button>
-      <button onclick="promptNewSection()">＋ Add Section</button>
+      <button onclick="refreshAll()">Refresh All</button>
+      <button onclick="addSection()">Add Section</button>
     </div>
     <div id="sections"></div>
-  </div>  <div class="modal" id="whoisModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <div id="modalData"></div>
+  </div>  <div id="popup" class="popup" style="display:none">
+    <div class="popup-content">
+      <button onclick="closePopup()">Close</button>
+      <table id="popupTable"></table>
     </div>
   </div>  <script>
-    const apiUrl = 'https://api.whois.vu/?q=';
+    const storageKey = 'domainTrackerData';
 
-    function saveData(data) {
-      localStorage.setItem('domainTrackerData', JSON.stringify(data));
+    const getData = () => JSON.parse(localStorage.getItem(storageKey) || '{}');
+    const setData = data => localStorage.setItem(storageKey, JSON.stringify(data));
+
+    function renderSections() {
+      const data = getData();
+      const container = document.getElementById('sections');
+      container.innerHTML = '';
+      Object.entries(data).forEach(([sectionName, domains]) => {
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.innerHTML = `
+          <div class="section-header" onclick="toggleSection('${sectionName}')">
+            <span>${sectionName}</span>
+            <span>▼</span>
+          </div>
+          <div class="section-content" id="section-${sectionName}">
+            <table>
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Domain</th>
+                  <th>Status</th>
+                  <th>Last Updated</th>
+                  <th>Next Renewal</th>
+                  <th>Registrar</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${domains.map((item, index) => `
+                  <tr onclick="showDetails('${sectionName}', ${index})">
+                    <td>${index + 1}</td>
+                    <td>${item.domain}</td>
+                    <td>${item.parsed?.status || 'n/a'}</td>
+                    <td>${item.parsed?.updated || 'n/a'}</td>
+                    <td>${item.parsed?.expiry || 'n/a'}</td>
+                    <td>${item.parsed?.registrar || 'n/a'}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(section);
+      });
     }
 
-    function loadData() {
-      return JSON.parse(localStorage.getItem('domainTrackerData') || '{}');
+    function toggleSection(name) {
+      const el = document.getElementById('section-' + name);
+      el.style.display = el.style.display === 'none' ? '' : 'none';
     }
 
-    function addDomain(sectionName) {
+    function showDetails(section, index) {
+      const item = getData()[section][index];
+      const table = document.getElementById('popupTable');
+      table.innerHTML = Object.entries(item.raw || {}).map(([k, v]) => `
+        <tr><th>${k}</th><td>${v}</td></tr>`).join('');
+      document.getElementById('popup').style.display = 'flex';
+    }
+
+    function closePopup() {
+      document.getElementById('popup').style.display = 'none';
+    }
+
+    async function fetchWhois(domain) {
+      const res = await fetch(`https://api.whois.vu/?q=${domain}`);
+      const json = await res.json();
+      const text = json.Whois;
+      const parsed = {
+        status: /Status:\s*(.+)/i.exec(text)?.[1] || '',
+        updated: /Updated Date:\s*(.+)/i.exec(text)?.[1] || '',
+        expiry: /Expiry Date:\s*(.+)/i.exec(text)?.[1] || '',
+        registrar: /Registrar:\s*(.+)/i.exec(text)?.[1] || '',
+      };
+      return { domain, parsed, raw: Object.fromEntries(text.split('\n').map(l => l.split(':').map(s => s.trim())).filter(x => x.length === 2)) };
+    }
+
+    async function addDomain() {
       const domain = document.getElementById('domainInput').value.trim();
       if (!domain) return;
-      const data = loadData();
-      if (!data[sectionName]) data[sectionName] = [];
-      if (!data[sectionName].some(d => d.domain === domain)) {
-        fetch(apiUrl + domain)
-          .then(res => res.json())
-          .then(whois => {
-            const parsed = parseWhois(whois);
-            data[sectionName].push({ domain, whois: parsed });
-            saveData(data);
-            renderSections();
-          });
-      }
+      const data = getData();
+      if (!data.Default) data.Default = [];
+      const whoisData = await fetchWhois(domain);
+      data.Default.push(whoisData);
+      setData(data);
+      renderSections();
       document.getElementById('domainInput').value = '';
     }
 
-    function parseWhois(whoisRaw) {
-      const lines = whoisRaw.Whois?.split('\n') || [];
-      const result = {};
-      lines.forEach(line => {
-        const [key, ...rest] = line.split(':');
-        if (key && rest.length) result[key.trim()] = rest.join(':').trim();
-      });
-      return result;
-    }
-
-    function renderSections() {
-      const data = loadData();
-      const container = document.getElementById('sections');
-      container.innerHTML = '';
-      for (const [sectionName, domains] of Object.entries(data)) {
-        const section = document.createElement('div');
-        section.className = 'section';
-
-        const header = document.createElement('div');
-        header.className = 'section-header';
-        header.innerHTML = `<span>${sectionName}</span><span onclick="toggleSection(this)">▼</span>`;
-        section.appendChild(header);
-
-        const content = document.createElement('div');
-        content.className = 'section-content';
-
-        const table = document.createElement('table');
-        table.innerHTML = '<tr><th>S.No.</th><th>Domain</th><th>Status</th><th>Last Updated</th><th>Next Renewal</th><th>Registrar</th><th>Actions</th></tr>';
-
-        domains.forEach((d, i) => {
-          const tr = document.createElement('tr');
-          tr.onclick = () => showModal(d);
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${d.domain}</td>
-            <td>${d.whois['Domain Status'] || 'N/A'}</td>
-            <td>${d.whois['Updated Date'] || 'N/A'}</td>
-            <td>${d.whois['Registry Expiry Date'] || 'N/A'}</td>
-            <td>${d.whois['Registrar'] || 'N/A'}</td>
-            <td><button onclick="event.stopPropagation();deleteDomain('${sectionName}', ${i})">Delete</button></td>
-          `;
-          table.appendChild(tr);
-        });
-        content.appendChild(table);
-        section.appendChild(content);
-        container.appendChild(section);
+    async function refreshAll() {
+      const data = getData();
+      for (const section in data) {
+        for (let i = 0; i < data[section].length; i++) {
+          const domain = data[section][i].domain;
+          const whoisData = await fetchWhois(domain);
+          data[section][i] = whoisData;
+        }
       }
-    }
-
-    function deleteDomain(section, index) {
-      const data = loadData();
-      data[section].splice(index, 1);
-      saveData(data);
+      setData(data);
       renderSections();
     }
 
-    function toggleSection(elem) {
-      const content = elem.closest('.section').querySelector('.section-content');
-      content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function showModal(domainObj) {
-      const modal = document.getElementById('whoisModal');
-      const modalData = document.getElementById('modalData');
-      modalData.innerHTML = '<table>' +
-        Object.entries(domainObj.whois).map(([k,v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('') +
-        '</table>';
-      modal.style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('whoisModal').style.display = 'none';
-    }
-
-    function refreshAll() {
-      const data = loadData();
-      const promises = [];
-      for (const [section, domains] of Object.entries(data)) {
-        domains.forEach(d => {
-          promises.push(
-            fetch(apiUrl + d.domain)
-              .then(res => res.json())
-              .then(whois => {
-                d.whois = parseWhois(whois);
-              })
-          );
-        });
-      }
-      Promise.all(promises).then(() => {
-        saveData(data);
-        renderSections();
-      });
-    }
-
-    function promptNewSection() {
-      const name = prompt('Enter section name:');
+    function addSection() {
+      const name = prompt("Enter section name:");
       if (!name) return;
-      const data = loadData();
+      const data = getData();
       if (!data[name]) data[name] = [];
-      saveData(data);
+      setData(data);
       renderSections();
     }
 
