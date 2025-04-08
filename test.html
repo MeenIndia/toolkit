@@ -3,255 +3,186 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Domain Tracker</title>
+  <title>Modern Domain Tracker</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f9f8;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 0;
+      background-color: #f4f7f9;
+      color: #333;
     }
-    .container {
-      max-width: 960px;
-      margin: auto;
-      padding: 20px;
+
+    header, .actions, .section {
+      margin: 20px auto;
+      width: 90%;
+      max-width: 1000px;
     }
-    h1 {
-      text-align: center;
-    }
-    .input-group {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    input[type="text"] {
-      flex: 1;
+
+    header input {
+      width: calc(100% - 45px);
       padding: 10px;
       font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px 0 0 6px;
+      outline: none;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
+
+    header button {
+      width: 45px;
+      height: 40px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      font-size: 20px;
+      border-radius: 0 6px 6px 0;
       cursor: pointer;
     }
-    .action-bar {
+
+    .actions {
       display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
+      justify-content: space-around;
+      flex-wrap: wrap;
     }
+
+    .action-btn {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 10px;
+      width: 70px;
+      height: 70px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .action-btn:hover {
+      background-color: #eef2f5;
+    }
+
+    .action-btn i {
+      font-size: 24px;
+      display: block;
+      margin-bottom: 5px;
+    }
+
     .section {
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
-      overflow: hidden;
     }
+
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #0077cc;
+      background: #007bff;
       color: white;
-      padding: 10px;
+      padding: 10px 15px;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .section-header button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
       cursor: pointer;
     }
-    .section-content {
-      display: none;
-    }
+
     table {
       width: 100%;
       border-collapse: collapse;
     }
+
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px;
       text-align: left;
+      border-bottom: 1px solid #ddd;
     }
-    th {
-      background-color: #f2f2f2;
+
+    td.actions {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
-      max-height: 80%;
-      overflow-y: auto;
-    }
-    .close {
-      float: right;
-      font-size: 24px;
-      cursor: pointer;
+
+    @media (max-width: 768px) {
+      .actions {
+        flex-direction: column;
+        align-items: center;
+      }
+      .action-btn {
+        margin: 5px 0;
+      }
+      th, td {
+        font-size: 14px;
+      }
     }
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Domain Tracker</h1>
-    <div class="input-group">
-      <input type="text" id="domainInput" placeholder="Enter domain" />
-      <button onclick="addDomain('Default')">+</button>
+  <header>
+    <input type="text" placeholder="Enter Domain" id="domainInput" />
+    <button title="Add Domain"><i class="fas fa-plus"></i></button>
+  </header>
+
+  <div class="actions">
+    <div class="action-btn" title="Refresh All">
+      <i class="fas fa-sync-alt"></i>
+      <span>Refresh</span>
     </div>
-    <div class="action-bar">
-      <button onclick="refreshAll()">⟳ Refresh All</button>
-      <button onclick="promptNewSection()">＋ Add Section</button>
+    <div class="action-btn" title="Add Section">
+      <i class="fas fa-folder-plus"></i>
+      <span>Add</span>
     </div>
-    <div id="sections"></div>
+    <div class="action-btn" title="Multi Select">
+      <i class="fas fa-check-square"></i>
+      <span>Select</span>
+    </div>
+    <div class="action-btn" title="All Delete">
+      <i class="fas fa-trash"></i>
+      <span>Delete</span>
+    </div>
   </div>
 
-  <div class="modal" id="whoisModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <div id="modalData"></div>
+  <div class="section">
+    <div class="section-header">
+      <span>Default Section</span>
+      <button title="Collapse"><i class="fas fa-chevron-down"></i></button>
     </div>
+    <table>
+      <thead>
+        <tr>
+          <th>S. No.</th>
+          <th>Domain</th>
+          <th>Status</th>
+          <th>Last Update</th>
+          <th>Next Renewal</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>google.com</td>
+          <td>Registered</td>
+          <td>2025-02-02</td>
+          <td>2025-09-29</td>
+          <td class="actions">
+            <button>Refresh</button>
+            <button>Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <script>
-    const apiUrl = 'https://api.whois.vu/?q=';
-
-    function saveData(data) {
-      localStorage.setItem('domainTrackerData', JSON.stringify(data));
-    }
-
-    function loadData() {
-      return JSON.parse(localStorage.getItem('domainTrackerData') || '{}');
-    }
-
-    function addDomain(sectionName) {
-      const domain = document.getElementById('domainInput').value.trim();
-      if (!domain) return;
-      const data = loadData();
-      if (!data[sectionName]) data[sectionName] = [];
-      if (!data[sectionName].some(d => d.domain === domain)) {
-        fetch(apiUrl + domain)
-          .then(res => res.json())
-          .then(whois => {
-            const parsed = parseWhois(whois);
-            data[sectionName].push({ domain, whois: parsed });
-            saveData(data);
-            renderSections();
-          });
-      }
-      document.getElementById('domainInput').value = '';
-    }
-
-    function parseWhois(whoisRaw) {
-      const lines = whoisRaw.Whois?.split('\n') || [];
-      const result = {};
-      lines.forEach(line => {
-        const [key, ...rest] = line.split(':');
-        if (key && rest.length) result[key.trim()] = rest.join(':').trim();
-      });
-      return result;
-    }
-
-    function renderSections() {
-      const data = loadData();
-      const container = document.getElementById('sections');
-      container.innerHTML = '';
-      for (const [sectionName, domains] of Object.entries(data)) {
-        const section = document.createElement('div');
-        section.className = 'section';
-
-        const header = document.createElement('div');
-        header.className = 'section-header';
-        header.innerHTML = `<span>${sectionName}</span><span onclick="toggleSection(this)">▼</span>`;
-        section.appendChild(header);
-
-        const content = document.createElement('div');
-        content.className = 'section-content';
-
-        const table = document.createElement('table');
-        table.innerHTML = '<tr><th>S.No.</th><th>Domain</th><th>Status</th><th>Last Updated</th><th>Next Renewal</th><th>Registrar</th><th>Actions</th></tr>';
-
-        domains.forEach((d, i) => {
-          const tr = document.createElement('tr');
-          tr.onclick = () => showModal(d);
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${d.domain}</td>
-            <td>${d.whois['Domain Status'] || 'N/A'}</td>
-            <td>${d.whois['Updated Date'] || 'N/A'}</td>
-            <td>${d.whois['Registry Expiry Date'] || 'N/A'}</td>
-            <td>${d.whois['Registrar'] || 'N/A'}</td>
-            <td><button onclick="event.stopPropagation();deleteDomain('${sectionName}', ${i})">Delete</button></td>
-          `;
-          table.appendChild(tr);
-        });
-        content.appendChild(table);
-        section.appendChild(content);
-        container.appendChild(section);
-      }
-    }
-
-    function deleteDomain(section, index) {
-      const data = loadData();
-      data[section].splice(index, 1);
-      saveData(data);
-      renderSections();
-    }
-
-    function toggleSection(elem) {
-      const content = elem.closest('.section').querySelector('.section-content');
-      content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function showModal(domainObj) {
-      const modal = document.getElementById('whoisModal');
-      const modalData = document.getElementById('modalData');
-      modalData.innerHTML = '<table>' +
-        Object.entries(domainObj.whois).map(([k,v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('') +
-        '</table>';
-      modal.style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('whoisModal').style.display = 'none';
-    }
-
-    function refreshAll() {
-      const data = loadData();
-      const promises = [];
-      for (const [section, domains] of Object.entries(data)) {
-        domains.forEach(d => {
-          promises.push(
-            fetch(apiUrl + d.domain)
-              .then(res => res.json())
-              .then(whois => {
-                d.whois = parseWhois(whois);
-              })
-          );
-        });
-      }
-      Promise.all(promises).then(() => {
-        saveData(data);
-        renderSections();
-      });
-    }
-
-    function promptNewSection() {
-      const name = prompt('Enter section name:');
-      if (!name) return;
-      const data = loadData();
-      if (!data[name]) data[name] = [];
-      saveData(data);
-      renderSections();
-    }
-
-    renderSections();
-  </script>
 </body>
 </html>
